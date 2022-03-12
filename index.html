@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <title>SuperLista</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        
+        <link rel="stylesheet" href="./style.css">
+        <link rel="stylesheet" href="./superLista.css">
+
+        <script src="./script.js"></script>
+        <script src="./superLista.js"></script>
+    </head>
+
+    <body>
+        <header class="headerBar dark">
+            <div class="appName">SuperLista</div>
+            <div class="badge warning badgeProdutos"><span id="qtProdFaltante">0</span> produtos faltantes</div>
+        </header>
+
+        <nav class="navBar">
+            <div class="buttonGroup">
+                <button id="tab1" class="button tab active" for="componente1">Lista de Compras</button>
+                <button id="tab2" class="button tab" for="componente2">Produtos</button>
+            </div>
+        </nav>
+        
+        <div id="componente1" class="component">
+            <div class="componentHeader">
+                <h1 class="componentTitle">Lista de Compras</h1> 
+            </div>
+
+            <div class="componentContent">
+                <div class="field">
+                    <input id="fieldPesquisa" type="text" onKeyPress="pesquisar()" autocomplete="off" placeholder="Pesquisar ..."/>
+                </div>
+
+                <div id="blank">
+                    <p>Lista Vazia</p>
+                </div>
+
+                <div id="compras" class="hidden">
+                    
+                    <h3 class="opacityText mt1" id="labelProdFaltantesTitle">PRODUTOS FALTANTES</h3> 
+                    <table id="produtosFaltantesTable" class="mt1" aria-labelledby="labelProdFaltantesTitle">
+                        <thead>
+                            <th>Nome</th>
+                            <th>Quantidade</th>
+                            <th>Comprado?</th>
+                        </thead>
+                        <tbody id="produtosFaltantesRow"></tbody>
+                    </table>
+
+                    <div class="hidden" id="divProdutosFaltantes">
+                        <h3 class="opacityText mt1" id="labelProdutosSugeridos">SUGESTÕES DE PRODUTOS</h3> 
+                        <table id="produtosSugeridos" class="mt1" aria-labelledby="labelProdutosSugeridos">
+                            <thead>
+                                <th>Nome</th>
+                                <th></th>
+                            </thead>
+                            <tbody id="produtosSugeridosRow"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="finalizarLista" class="mt1">
+                        <button class="button primary" onclick="finalizarLista()">Finalizar Lista de Compras</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="componente2" class="component hidden">
+            <div class="componentHeader">
+                <h1 class="componentTitle">Produtos</h1> 
+                <button id="btnAdic" class="button primary" onclick="novoProduto();">
+                    <img src="./assets/plus1.png" alt="Adicionar Produto"/>
+                </button>
+            </div>
+
+            <div class="componentContent">
+                <div id="blankProdutos">
+                    <p>Nenhum produto cadastrado</p>
+                </div>
+
+                <div class="hidden" id="divProdutos">
+                    <table id="produtos" class="mt1">
+                        <thead>
+                            <th>Nome</th>
+                            <th></th>
+                        </thead>
+                        <tbody id="produtosRow"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="componente3" class="component hidden">
+            <div class="componentHeader">
+                <h1 class="componentTitle">Novo Produto</h1>
+            </div>
+
+            <div class="componentContent">
+                <div class="field mt1">
+                    <label class="fifth">Nome</label>
+                    <input type="text" autocomplete="off" id="descricao"/>
+                </div>
+                <div class="field mt1">
+                    <label class="fifth">Marca</label>
+                    <input type="text" autocomplete="off" id="marca"/>
+                </div>
+                <div class="field mt1">
+                    <label class="fifth">Última compra</label>
+                    <input type="date" autocomplete="off" id="ultimaCompra"/>
+                </div>
+                <div class="field mt1">
+                    <label class="fifth">Periodicidade da compra</label>
+                    <select name="select" id="periodicidade">
+                        <option value="semanal" selected>Semanal</option>
+                        <option value="quinzenal">Quinzenal</option>
+                        <option value="mensal">Mensal</option>
+                    </select>
+                </div>
+                <div class="field mt1">
+                    <label class="fifth">Último valor pago</label>
+                    <input type="number" autocomplete="off" id="ultimoValorPago"/>
+                </div>
+                <div class="field mt1">
+                    <label class="fifth">Tipo da quantidade</label>
+                    <select name="select" id="tipoQuantidade">
+                        <option value="kilo">Kilo</option>
+                        <option value="litro">Litro</option>
+                        <option value="pacote" selected>Pacote</option>
+                        <option value="pote">Pote</option>
+                        <option value="sache">Sache</option>
+                        <option value="vidro">Vidro</option>
+                    </select>
+                </div>
+                <div class="field mt1">
+                    <label class="fifth">Quantidade</label>
+                    <input type="number" autocomplete="off" id="quantidade"/>
+                </div>
+                <div id="inputImagemProduto" class="mt1">
+                    <input type="file" class="custom-file-input" accept="image/*" id="imagem"/>
+                </div>
+                <div id="divImagemProduto" class="mt1 hidden">
+
+                </div>
+                <div class="formButtonGroup mt1">
+                    <button class="button light half" onclick="cancelarFormProduto()">Cancelar</button>
+                    <button class="button primary half ml1" onclick="salvarProduto()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+    
