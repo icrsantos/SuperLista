@@ -10,6 +10,10 @@
 
         <script src="./script.js"></script>
         <script src="./superLista.js"></script>
+        
+        <!-- framework js para a geração dos gráficos -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
     </head>
 
     <body>
@@ -22,6 +26,7 @@
             <div class="buttonGroup">
                 <button id="tab1" class="button tab active" for="componente1">Lista de Compras</button>
                 <button id="tab2" class="button tab" for="componente2">Produtos</button>
+                <button id="tab3" class="button tab hidden" for="componente3">Novo Produtos</button>
             </div>
         </nav>
         
@@ -96,7 +101,10 @@
 
         <div id="componente3" class="component hidden">
             <div class="componentHeader">
-                <h1 class="componentTitle">Novo Produto</h1>
+                <h1 class="componentTitle" id="tituloProduto">Novo Produto</h1>
+                <button id="btnRemov" class="button primary hidden" onclick="removerProduto();">
+                    <img src="./assets/delete.png" alt="Remover Produto"/>
+                </button>
             </div>
 
             <div class="componentContent">
@@ -140,10 +148,13 @@
                     <input type="number" autocomplete="off" id="quantidade"/>
                 </div>
                 <div id="inputImagemProduto" class="mt1">
-                    <input type="file" class="custom-file-input" accept="image/*" id="imagem"/>
+                    <input type="file" class="custom-file-input" accept="image/*" id="img-input" />
                 </div>
-                <div id="divImagemProduto" class="mt1 hidden">
-
+                <div id="divImagemProduto">
+                    <img id="imagem-preview" src="">
+                </div>
+                <div id="divGraficosProduto" class="mt1 hidden">
+                    <canvas id="chartHistoricoProduto"></canvas>
                 </div>
                 <div class="formButtonGroup mt1">
                     <button class="button light half" onclick="cancelarFormProduto()">Cancelar</button>
