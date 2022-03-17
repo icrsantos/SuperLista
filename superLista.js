@@ -7,6 +7,8 @@ onload = () => {
     recuperarProdutos();
     mostraListaCompras();
     mostrarProdutos();
+
+    document.getElementById("img-input").addEventListener("change", readImage, false);
 }
 
 const carregarTabs = () => {
@@ -166,13 +168,26 @@ const adicionarProdutoLista = (index) => {
 const finalizarLista = () => {
     var resultado = confirm("Deseja realmente finalizar esta lista de compras?");
     if (resultado) {
+        produtos.filter(produto => produto.acabou).forEach((produto) => {
+            produto.acabou = false
+            produto.ultimaCompra = moment().format('YYYY-MM-DD');
+
+            if(!produto.historicoCompras) {
+                produto.historicoCompras = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+
+            produto.historicoCompras[parseInt(moment().format('M'))] += parseInt(produto.quantidade);
+        });
+
         produtosFaltantes = [];
         produtosSugeridos = [];
 
+        localStorage.setItem('produtos', JSON.stringify(produtos));
         localStorage.setItem('produtosFaltantes', JSON.stringify(produtosFaltantes));
         localStorage.setItem('produtosSugeridos', JSON.stringify(produtosSugeridos));
 
         mostraListaCompras();
+        mostrarProdutos();
         alert("Compras finalizadas com sucesso!");
     }
 }
@@ -181,7 +196,7 @@ const novoProduto = () => {
     document.querySelector('#componente3').classList.remove('hidden');
     document.querySelector('#componente2').classList.add('hidden');
 
-    document.querySelector('#divImagemProduto').classList.add('hidden');
+    document.querySelector('#divGraficosProduto').classList.add('hidden');
     document.querySelector('#inputImagemProduto').classList.remove('hidden');
 }
 
@@ -194,39 +209,90 @@ const cancelarFormProduto = () => {
     
     document.querySelector('#componente3').classList.add('hidden');
     document.querySelector('#componente2').classList.remove('hidden');
+    document.querySelector('#btnRemov').classList.add('hidden');
+    document.querySelector('#tituloProduto').innerHTML = 'Novo produto';
+    document.querySelector('#imagem-preview').src = '';
 
     mostrarProdutos();
 }
 
 const salvarProduto = () => {
+    let descricao = document.getElementById("descricao").value;
+    let produtoInserido = produtos.filter(prod => prod.descricao == descricao);
+
     let produto = {
-        id: (produtos.length + 1),
-        descricao: document.getElementById("descricao").value, 
+        id: null,
+        descricao: descricao, 
         marca: document.getElementById("marca").value, 
         ultimaCompra: document.getElementById("ultimaCompra").value,
         periodicidade: document.getElementById("periodicidade").value,
         ultimoValorPago: document.getElementById("ultimoValorPago").value,
         tipoQuantidade: document.getElementById("tipoQuantidade").value, 
         quantidade: document.getElementById("quantidade").value,
-        imagem: document.getElementById("imagem")
+        imagem: toBase64String(document.getElementById("imagem-preview")),
     }
 
-    produtos.push(produto);
+    if(produtoInserido.length > 0) {
+        let index = produtos.indexOf(produtoInserido[0]);
+        produto.id = produtos[index].id;
+        produto.acabou = produtos[index].acabou;
+        produto.historicoPrecos = produtos[index].historicoPrecos;
+        produto.historicoCompras = produtos[index].historicoCompras;
+
+        produtos[index] = produto;
+    } else {
+        let id = 0;
+        for(let i = 0; i < produtos.length; i++) {
+            if(produtos[i].id > id) {
+                id = produtos[i].id;
+            }
+        }
+        
+        produto.id = (id + 1);
+        produtos.push(produto);
+    }
+    
+    if(!produto.historicoPrecos) {
+        produto.historicoPrecos = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+
+    produto.historicoPrecos[parseInt(moment().format('M'))] = parseFloat(produto.ultimoValorPago);
     localStorage.setItem('produtos', JSON.stringify(produtos));
     cancelarFormProduto();
+}
+
+function readImage() {
+    if (this.files && this.files[0]) {
+        var file = new FileReader();
+        file.onload = function(e) {
+            document.getElementById("imagem-preview").src = e.target.result;
+        };
+
+        file.readAsDataURL(this.files[0]);
+    }
+}
+
+function toBase64String(img) {
+    var canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    var dataURL = canvas.toDataURL("image/png");
+    return dataURL;
 }
 
 const mostrarProdutos = () => {
     const produtosRow = document.querySelector("#produtosRow");
     produtosRow.innerHTML = '';
 
-    produtos.forEach((produto) => {
+    produtos.forEach((produto, index) => {
         let tableRow = document.createElement("tr");
         tableRow.innerHTML = '';
 
         let nameProdutoElement = document.createElement("td");
         nameProdutoElement.innerHTML = produto.descricao;
-        nameProdutoElement.onclick = function() { editarProduto(produto) };
+        nameProdutoElement.onclick = function() { editarProduto(produto, index) };
         tableRow.appendChild(nameProdutoElement);
 
         let acaoElement = document.createElement("td");
@@ -240,7 +306,7 @@ const mostrarProdutos = () => {
         inputAcabou.type = 'checkbox';
         inputAcabou.id = "checkAcabou" + produto.id;
         inputAcabou.checked = produto.acabou;
-        inputAcabou.onclick = function() { adicionarProdutoFaltante(produto) }
+        inputAcabou.onclick = function() { adicionarProdutoFaltante(produto, index) }
 
         let spamAcabado = document.createElement("span");
         spamAcabado.classList.add("round");
@@ -265,17 +331,27 @@ const mostrarProdutos = () => {
     }
 }
 
-const adicionarProdutoFaltante = (produto) => {
-    produto.acabou = true;
-    produtosFaltantes.push(produto);
-    localStorage.setItem('produtosFaltantes', JSON.stringify(produtosFaltantes));
+const adicionarProdutoFaltante = (produto, index) => {
+    produto.acabou = document.querySelector("#checkAcabou" + produto.id).checked;
+    if(produto.acabou) {
+        produtosFaltantes.push(produto);
+    } else {
+        let produtoFaltante = produtosFaltantes.filter(p => p.id == produto.id);
+        produtosFaltantes.splice(produtosFaltantes.indexOf(produtoFaltante), 1);
+    }
 
+    produtos[index] = produto;
+    localStorage.setItem('produtos', JSON.stringify(produtos));
+    localStorage.setItem('produtosFaltantes', JSON.stringify(produtosFaltantes));
     mostraListaCompras();
 }
 
-const editarProduto = (produto) => {
+const editarProduto = (produto, index) => {
     document.querySelector('#componente3').classList.remove('hidden');
     document.querySelector('#componente2').classList.add('hidden');
+    document.querySelector('#btnRemov').classList.remove('hidden');
+    document.querySelector('#btnRemov').classList.onclick = function() { removerProduto(produto) }
+    document.querySelector('#tituloProduto').innerHTML = produto.descricao;
 
     document.getElementById("descricao").value = produto.descricao; 
     document.getElementById("marca").value = produto.marca; 
@@ -285,10 +361,48 @@ const editarProduto = (produto) => {
     document.getElementById("tipoQuantidade").value = produto.tipoQuantidade;
     document.getElementById("quantidade").value = produto.quantidade;
 
-    document.querySelector('#divImagemProduto').classList.remove('hidden');
-    document.querySelector('#inputImagemProduto').classList.add('hidden');
+    document.querySelector('#divGraficosProduto').classList.remove('hidden');
+    document.querySelector('#imagem-preview').src = produto.imagem;
+
+    const chartHistoricoProduto = new Chart(
+        document.getElementById('chartHistoricoProduto'),
+        configuracoesGraficoProdutos(index)
+    );
+}
+
+const removerProduto = (produto) => {
+    var resultado = confirm("Deseja realmente deletar este produto?");
+    if (resultado) {
+        produtos.splice(produtos.indexOf(produto), 1);
+        localStorage.setItem('produtos', JSON.stringify(produtos));
+        cancelarFormProduto();
+    }
+}
+
+const configuracoesGraficoProdutos = (index) => {
+    const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     
-    let imagemElement = document.createElement("img");
-    imagemElement.src = produto.imagem;
-    document.querySelector('#divImagemProduto').appendChild(imagemElement);
+    const data = {
+        labels: labels,
+        datasets: [{
+            type: 'bar',
+            label: 'Consumo',
+            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+            borderColor: 'rgba(255, 206, 86, 1)',
+            data: produtos[index].historicoCompras,
+        }, 
+        {
+            type: 'line',
+            label: 'Preço',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: false,
+            data: produtos[index].historicoPrecos
+        }],
+    };
+    
+    return {
+        type: 'bar',
+        data: data,
+        options: {}
+    };
 }
