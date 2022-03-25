@@ -1,16 +1,21 @@
+/** Arrays dos dados importantes para a aplicação **/
 let produtos = [];
 let produtosFaltantes = [];
 let produtosSugeridos = [];
 
+var chartHistoricoProduto;
+var isNew = false;
+
 onload = () => {
     carregarTabs();
     recuperarProdutos();
-    mostraListaCompras();
-    mostrarProdutos();
+    montarElementsListaCompras();
+    montarElementsProdutos();
 
     document.getElementById("img-input").addEventListener("change", readImage, false);
 }
 
+/** Carregamento das tabs da aplicação **/
 const carregarTabs = () => {
     let tabs = document.querySelectorAll('.navBar .tab');
 
@@ -40,6 +45,7 @@ const carregarTabs = () => {
     document.querySelector('#componente3').classList.add('hidden');
 }
 
+/** Recupera no localstorage os dados de produtos, produtos faltantes e produtos sugeridos **/
 const recuperarProdutos = () => {
     const prodFaltanteLocalStorage = JSON.parse(localStorage.getItem('produtosFaltantes'));
     if(prodFaltanteLocalStorage) {
@@ -57,15 +63,16 @@ const recuperarProdutos = () => {
     }
 }
 
-const mostraListaCompras = () => {
-    montarElementsListaProdutos();
+/** Monta a lista de compras **/
+const montarElementsListaCompras = () => {
+    montarElementsProdutosListaCompras();
     document.querySelector("#qtProdFaltante").innerHTML = produtosFaltantes.length;
 
-    if(produtosSugeridos.length == 0) {
+    if(!produtosSugeridos || produtosSugeridos.length == 0) {
         document.querySelector("#divProdutosFaltantes").classList.add("hidden");
     } else {
         document.querySelector("#divProdutosFaltantes").classList.remove("hidden");
-        montarElementsListaSugestoes();
+        montarElementsSugestoesListaCompras();
     }
 
     if(produtosFaltantes.length > 0) {
@@ -77,7 +84,8 @@ const mostraListaCompras = () => {
     }
 }
 
-const montarElementsListaProdutos = () => {
+/** Monta a table de produtos faltantes da lista de compras **/
+const montarElementsProdutosListaCompras = () => {
     const produtosFaltantesRow = document.querySelector("#produtosFaltantesRow");
     produtosFaltantesRow.innerHTML = '';
 
@@ -111,7 +119,8 @@ const montarElementsListaProdutos = () => {
     });
 }
 
-const montarElementsListaSugestoes = () => {
+/** Monta a table de produtos sugeridos na lista de compras **/
+const montarElementsSugestoesListaCompras = () => {
     const sugestaoProdutosRow = document.querySelector("#produtosSugeridos");
     sugestaoProdutosRow.innerHTML = '';
 
@@ -130,7 +139,7 @@ const montarElementsListaSugestoes = () => {
         labelAdicionarLista.innerHTML = "Adicionar a lista";
         labelAdicionarLista.id = index;
 
-        labelAdicionarLista.addEventListener('click', function() { adicionarProdutoLista(index) });
+        labelAdicionarLista.addEventListener('click', function() { adicionarProdutoSugeridoALista(index) });
         labelAdicionarLista.classList.add("italicText");
         acaoElement.appendChild(labelAdicionarLista);
 
@@ -140,6 +149,7 @@ const montarElementsListaSugestoes = () => {
     });
 }
 
+/** Pesquisa produtos faltantes por nome **/
 const pesquisar = () => {
     recuperarProdutos();
 
@@ -152,19 +162,21 @@ const pesquisar = () => {
     })
     
     produtosFaltantes = produtosFiltrados;
-    mostraListaCompras();
+    montarElementsListaCompras();
 }
 
-const adicionarProdutoLista = (index) => {
+/** Adiciona um produto sugerido a lista de compras **/
+const adicionarProdutoSugeridoALista = (index) => {
     produtosFaltantes.push(produtosSugeridos[index]);
     produtosSugeridos.splice(index, 1);
 
     localStorage.setItem('produtosFaltantes', JSON.stringify(produtosFaltantes));
     localStorage.setItem('produtosSugeridos', JSON.stringify(produtosSugeridos));
 
-    mostraListaCompras();
+    montarElementsListaCompras();
 }
 
+/** Finaliza uma lista de compras indicando que os produtos foram comprados **/
 const finalizarLista = () => {
     var resultado = confirm("Deseja realmente finalizar esta lista de compras?");
     if (resultado) {
@@ -186,13 +198,15 @@ const finalizarLista = () => {
         localStorage.setItem('produtosFaltantes', JSON.stringify(produtosFaltantes));
         localStorage.setItem('produtosSugeridos', JSON.stringify(produtosSugeridos));
 
-        mostraListaCompras();
-        mostrarProdutos();
+        montarElementsListaCompras();
+        montarElementsProdutos();
         alert("Compras finalizadas com sucesso!");
     }
 }
 
+/** Habilita a tela de novo produto **/
 const novoProduto = () => {
+    this.isNew = true;
     document.querySelector('#componente3').classList.remove('hidden');
     document.querySelector('#componente2').classList.add('hidden');
 
@@ -200,6 +214,7 @@ const novoProduto = () => {
     document.querySelector('#inputImagemProduto').classList.remove('hidden');
 }
 
+/** Cancela o formulário de novo produto **/
 const cancelarFormProduto = () => {
     document.getElementById("descricao").value = null; 
     document.getElementById("ultimaCompra").value = null;
@@ -213,12 +228,23 @@ const cancelarFormProduto = () => {
     document.querySelector('#tituloProduto').innerHTML = 'Novo produto';
     document.querySelector('#imagem-preview').src = '';
 
-    mostrarProdutos();
+    montarElementsProdutos();
 }
 
-const salvarProduto = () => {
+/** Salva um produto **/
+salvarProduto = () => {
     let descricao = document.getElementById("descricao").value;
-    let produtoInserido = produtos.filter(prod => prod.descricao == descricao);
+
+    if(!descricao) {
+        alert("Não é possível inserir um produto sem nome");
+        return;
+    }
+
+    let produtoInserido = produtos.filter(prod => prod.descricao.normalize('NFD').replace(/[^\w\s]/gi, '').toLowerCase() == descricao.normalize('NFD').replace(/[^\w\s]/gi, '').trim().toLowerCase());
+    if(produtoInserido.length > 0 && this.isNew) {
+        alert("Produto já inserido");
+        return;
+    }
 
     let produto = {
         id: null,
@@ -261,6 +287,7 @@ const salvarProduto = () => {
     cancelarFormProduto();
 }
 
+/** Lê uma imagem do campo input **/
 function readImage() {
     if (this.files && this.files[0]) {
         var file = new FileReader();
@@ -272,17 +299,21 @@ function readImage() {
     }
 }
 
-function toBase64String(img) {
-    var canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    var ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    var dataURL = canvas.toDataURL("image/png");
-    return dataURL;
+/** Realiza o tratamento da imagem para que a mesma seja salva no localstorage **/
+function toBase64String (imagem) {
+    if(imagem instanceof Image && imagem.src != 'data:,') {
+        var canvas = document.createElement("canvas");
+        canvas.width = imagem.width;
+        canvas.height = imagem.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(imagem, 0, 0);
+        var dataURL = canvas.toDataURL("image/png");
+        return dataURL;
+    }
 }
 
-const mostrarProdutos = () => {
+/** Monta a tabela de produtos da tela Produtos **/
+const montarElementsProdutos = () => {
     const produtosRow = document.querySelector("#produtosRow");
     produtosRow.innerHTML = '';
 
@@ -331,6 +362,7 @@ const mostrarProdutos = () => {
     }
 }
 
+/** Adiciona um produto faltante a lista de compras **/
 const adicionarProdutoFaltante = (produto, index) => {
     produto.acabou = document.querySelector("#checkAcabou" + produto.id).checked;
     if(produto.acabou) {
@@ -343,10 +375,13 @@ const adicionarProdutoFaltante = (produto, index) => {
     produtos[index] = produto;
     localStorage.setItem('produtos', JSON.stringify(produtos));
     localStorage.setItem('produtosFaltantes', JSON.stringify(produtosFaltantes));
-    mostraListaCompras();
+    montarElementsListaCompras();
 }
 
+/** Habilita tela de edição do produto **/
 const editarProduto = (produto, index) => {
+    this.isNew = false;
+
     document.querySelector('#componente3').classList.remove('hidden');
     document.querySelector('#componente2').classList.add('hidden');
     document.querySelector('#btnRemov').classList.remove('hidden');
@@ -362,14 +397,25 @@ const editarProduto = (produto, index) => {
     document.getElementById("quantidade").value = produto.quantidade;
 
     document.querySelector('#divGraficosProduto').classList.remove('hidden');
-    document.querySelector('#imagem-preview').src = produto.imagem;
 
-    const chartHistoricoProduto = new Chart(
-        document.getElementById('chartHistoricoProduto'),
-        configuracoesGraficoProdutos(index)
-    );
+    if(produto.imagem) {
+        document.querySelector('#imagem-preview').src = produto.imagem;
+    }
+
+    if(!chartHistoricoProduto) {
+        chartHistoricoProduto = new Chart(
+            document.getElementById('chartHistoricoProduto'),
+            configuracoesGraficoProdutos(index)
+        );
+    } else {
+        chartHistoricoProduto = window.chartHistoricoProduto;
+        chartHistoricoProduto.data.datasets[0].data = produtos[index].historicoCompras;
+        chartHistoricoProduto.data.datasets[1].data = produtos[index].historicoPrecos;
+        chartHistoricoProduto.update();
+    }
 }
 
+/** Deleta um produto **/
 const removerProduto = (produto) => {
     var resultado = confirm("Deseja realmente deletar este produto?");
     if (resultado) {
@@ -379,6 +425,7 @@ const removerProduto = (produto) => {
     }
 }
 
+/** Seta as configurações do charts para a geração dos gráficos **/
 const configuracoesGraficoProdutos = (index) => {
     const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     
@@ -406,3 +453,6 @@ const configuracoesGraficoProdutos = (index) => {
         options: {}
     };
 }
+
+/** Registra o service-work **/
+navigator.serviceWorker.register('./superlista-sw.js');
